@@ -33,7 +33,7 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
         IndentationLevel++;
         foreach (var attribute in Object.Associations.Where(x => !ShouldPrintAttributeAsAssociation(x)))
         {
-            var cardinality = attribute.IsList ? "[*]" : string.Empty;
+            var cardinality = attribute.IsList ? "[*]" : attribute.IsNullable ? "?" : string.Empty;
             var targetTypeName = attribute.TargetSymbol.IsResolved
                 ? attribute.TargetSymbol.ResolvedTarget!.FullName
                 : attribute.TargetSymbol.SymbolName;
