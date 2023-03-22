@@ -6,7 +6,7 @@ namespace PlantUmlGenerator.Printer;
 public class IncludesPrinter
 {
     public const char PumlFileDirectorySeparator = '/';
-    private const string IncludesFileNameWithoutExtension = "includes";
+    private const string IncludesFileNameWithoutExtension = "_";
     private readonly string _fullOutputPath;
     private readonly Folder _outputFolder;
 
@@ -62,7 +62,7 @@ public class IncludesPrinter
         public async Task Print()
         {
             var content = new StringBuilder();
-            content.AppendLine("@startuml includes").AppendLine();
+            content.AppendLine("@startuml").AppendLine();
             foreach (var subFolder in _subFolders)
             {
                 content.AppendLine($"!include {subFolder.Key}{PumlFileDirectorySeparator}{IncludesFileNameWithoutExtension}.puml");
