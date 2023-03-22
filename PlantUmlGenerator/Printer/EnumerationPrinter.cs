@@ -11,7 +11,7 @@ public class EnumerationPrinter : PrinterForNamedObjects<Enumeration>
 
     public override async Task Print()
     {
-        await WriteLine($"@startuml {Object.FullName}");
+        await WriteLine($"@startuml");
         await WriteLine();
         await WriteLine("!startsub TYPE");
         await WriteLine($"enum {Object.FullName} {{");

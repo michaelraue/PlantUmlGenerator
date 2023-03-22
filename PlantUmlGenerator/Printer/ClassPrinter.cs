@@ -14,7 +14,7 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
     {
         var abstractModifier = Object.IsAbstract ? "abstract " : string.Empty;
         var stereotype = GetClassStereotype();
-        await WriteLine($"@startuml {Object.FullName}");
+        await WriteLine($"@startuml");
         await WriteLine();
         await WriteLine("!startsub TYPE");
         await WriteLine($"{abstractModifier}class {Object.FullName}{stereotype}{{");
@@ -92,7 +92,7 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
         }
 
         var up = GetDirectoryLevelUpsToRoot();
-        foreach (var down in associations.Select(x => x.TargetSymbol.ResolvedTarget!.FullName.Replace('.', Path.DirectorySeparatorChar)))
+        foreach (var down in associations.Select(x => IncludesPrinter.GetIncludesPathByNamespace(x.TargetSymbol.ResolvedTarget!)))
         {
             await WriteLine($"!includesub {up}{down}.puml!TYPE");
         }
@@ -108,7 +108,7 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
         }
 
         var up = GetDirectoryLevelUpsToRoot();
-        var down = Object.BaseTypeSymbol!.ResolvedTarget!.FullName.Replace('.', Path.DirectorySeparatorChar);
+        var down = IncludesPrinter.GetIncludesPathByNamespace(Object.BaseTypeSymbol!.ResolvedTarget!);
         await WriteLine($"!includesub {up}{down}.puml!TYPE");
 
         return true;
@@ -133,28 +133,27 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
 
     private DddType GetDddType(string baseType)
     {
-        var className = baseType;//.Split('.').LastOrDefault();
-        if (string.IsNullOrWhiteSpace(className))
+        if (string.IsNullOrWhiteSpace(baseType))
         {
             return DddType.None;
         }
 
-        if (Regex.IsMatch(className, @"Aggregate(Root)?"))
+        if (Regex.IsMatch(baseType, @"Aggregate(Root)?"))
         {
             return DddType.AggregateRoot;
         }
         
-        if (Regex.IsMatch(className, @"Entity"))
+        if (Regex.IsMatch(baseType, @"Entity"))
         {
             return DddType.Entity;
         }
         
-        if (Regex.IsMatch(className, @"(Single)?ValueObject"))
+        if (Regex.IsMatch(baseType, @"(Single)?ValueObject"))
         {
             return DddType.ValueObject;
         }
         
-        if (Regex.IsMatch(className, @"Enumeration"))
+        if (Regex.IsMatch(baseType, @"Enumeration"))
         {
             return DddType.Enumeration;
         }

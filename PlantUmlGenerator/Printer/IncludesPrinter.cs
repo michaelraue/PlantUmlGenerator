@@ -1,9 +1,12 @@
 ﻿using System.Text;
+using PlantUmlGenerator.Model;
 
 namespace PlantUmlGenerator.Printer;
 
 public class IncludesPrinter
 {
+    public const char PumlFileDirectorySeparator = '/';
+    private const string IncludesFileNameWithoutExtension = "includes";
     private readonly string _fullOutputPath;
     private readonly Folder _outputFolder;
 
@@ -11,6 +14,11 @@ public class IncludesPrinter
     {
         _fullOutputPath = outputDirectory.FullName;
         _outputFolder = new Folder(outputDirectory.FullName);
+    }
+
+    public static string GetIncludesPathByNamespace(NamespacedObject obj)
+    {
+        return obj.FullName.Replace('.', PumlFileDirectorySeparator);
     }
 
     public Task Print() => _outputFolder.Print();
@@ -57,7 +65,7 @@ public class IncludesPrinter
             content.AppendLine("@startuml includes").AppendLine();
             foreach (var subFolder in _subFolders)
             {
-                content.AppendLine($"!include {subFolder.Key}\\_.puml");
+                content.AppendLine($"!include {subFolder.Key}{PumlFileDirectorySeparator}{IncludesFileNameWithoutExtension}.puml");
             }
 
             foreach (var file in _files)
@@ -66,7 +74,7 @@ public class IncludesPrinter
             }
 
             content.AppendLine().AppendLine("@enduml");
-            await File.WriteAllTextAsync(Path.Combine(_path, "_.puml"), content.ToString());
+            await File.WriteAllTextAsync(Path.Combine(_path, $"{IncludesFileNameWithoutExtension}.puml"), content.ToString());
             foreach (var subFolder in _subFolders)
             {
                 await subFolder.Value.Print();

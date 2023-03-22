@@ -22,7 +22,7 @@ public abstract class PrinterForNamedObjects<T> where T : NamespacedObject
     public abstract Task Print();
 
     protected string GetDirectoryLevelUpsToRoot() =>
-        string.Concat(Enumerable.Repeat(".." + Path.DirectorySeparatorChar, Object.Namespace.Split(".").Length));
+        string.Concat(Enumerable.Repeat($"..{IncludesPrinter.PumlFileDirectorySeparator}", Object.Namespace.Split(".").Length));
 
     protected async Task<bool> PrintIncomingReferenceIncludes()
     {
@@ -33,7 +33,7 @@ public abstract class PrinterForNamedObjects<T> where T : NamespacedObject
         }
 
         var up = GetDirectoryLevelUpsToRoot();
-        foreach (var down in incomingReferences.Select(x => x.FullName.Replace('.', Path.DirectorySeparatorChar)))
+        foreach (var down in incomingReferences.Select(IncludesPrinter.GetIncludesPathByNamespace))
         {
             await WriteLine($"!includesub {up}{down}.puml!TYPE");
         }
