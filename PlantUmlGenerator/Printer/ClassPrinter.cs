@@ -116,6 +116,11 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
 
     private string GetClassStereotype()
     {
+        if (Object.IsRecord)
+        {
+            return "<<Value Object>> ";
+        }
+
         if (Object.BaseTypeSymbol is null)
         {
             return " ";

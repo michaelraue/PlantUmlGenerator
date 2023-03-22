@@ -75,7 +75,7 @@ public class TypeReader : CSharpSyntaxWalker
 
         var baseClassSymbol = GetBaseClassSymbol(symbol);
         var @namespace = _project.GetRelativeNamespace(symbol.ContainingNamespace?.ToDisplayString());
-        var @class = new Class(@namespace, symbol.Name, symbol.IsAbstract, baseClassSymbol);
+        var @class = new Class(@namespace, symbol.Name, symbol.IsAbstract, symbol.IsRecord, baseClassSymbol);
         if (ShallBeExcluded(@class))
         {
             return false;
@@ -136,10 +136,10 @@ public class TypeReader : CSharpSyntaxWalker
         {
             if (_symbolNamespace is null)
             {
-                return symbol.ToString();
+                return symbol.Name;
             }
             
-            return symbol.ToString()?
+            return symbol.Name
                 .Replace(_symbolNamespace, string.Empty)
                 .TrimStart('.');
         }
