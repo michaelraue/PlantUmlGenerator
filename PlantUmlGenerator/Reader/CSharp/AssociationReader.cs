@@ -31,7 +31,13 @@ public class AssociationReader : SymbolVisitor
 
         var relativeTargetTypeNamespace = _project.GetRelativeNamespace(targetTypeNamespace);
         var isList = symbol.Type.Accept(new IsList());
-        var isNullable = symbol.Type.Accept(new IsNullable());
+        var isNullable = symbol.Type.Accept(new IsBoxedNullableType());
+        if (targetTypeName.EndsWith("?"))
+        {
+            isNullable = true;
+            targetTypeName = targetTypeName[..^1];
+        }
+
         _project.Add(new Association(symbol.Name, new TypeSymbol(targetTypeName, relativeTargetTypeNamespace), isList, isNullable));
     }
 
@@ -107,7 +113,7 @@ public class AssociationReader : SymbolVisitor
             IsDictionaryType(symbol) || IsListType(symbol);
     }
 
-    private class IsNullable : SymbolVisitor<bool>
+    private class IsBoxedNullableType : SymbolVisitor<bool>
     {
         public override bool VisitNamedType(INamedTypeSymbol symbol) =>
             IsNullableType(symbol);
