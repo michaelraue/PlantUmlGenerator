@@ -5,16 +5,24 @@ namespace PlantUmlGenerator.Printer;
 
 public class ClassPrinter : PrinterForNamedObjects<Class>
 {
-    public ClassPrinter(Class @class, TextWriter writer, PumlProject project)
+    private readonly List<string> _namespacesToHideInOtherNamespaces;
+    private readonly List<string> _namespacesToDrawNoArrowsTo;
+
+    public ClassPrinter(Class @class, TextWriter writer, PumlProject project,
+        IEnumerable<string> namespacesToDrawNoAssociationsTo, IEnumerable<string> namespacesToHideInOtherNamespaces)
         : base(@class, writer, project)
     {
+        _namespacesToDrawNoArrowsTo = namespacesToDrawNoAssociationsTo.ToList();
+        _namespacesToHideInOtherNamespaces = namespacesToHideInOtherNamespaces.ToList();
     }
 
     public override async Task Print()
     {
         var abstractModifier = Object.IsAbstract ? "abstract " : string.Empty;
         var stereotype = GetClassStereotype();
-        await WriteLine($"@startuml");
+        await WriteLine("@startuml");
+        await WriteLine();
+        await PrintCommonConfigInclude();
         await WriteLine();
         await WriteLine("!startsub TYPE");
         await WriteLine($"{abstractModifier}class {Object.FullName}{stereotype}{{");
@@ -25,13 +33,14 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
         await WriteLine("!endsub");
         await WriteLine();
         await PrintIncludes();
+        await WriteLine();
         await WriteLine("@enduml");
     }
 
     private async Task PrintAttributes()
     {
         IndentationLevel++;
-        foreach (var attribute in Object.Associations.Where(x => !ShouldPrintAttributeAsAssociation(x)))
+        foreach (var attribute in Object.Associations.Where(x => !ShouldPrintAttributeAsAssociation(Object, x)))
         {
             var cardinality = attribute.IsList ? "[*]" : attribute.IsNullable ? "?" : string.Empty;
             var targetTypeName = attribute.TargetSymbol.IsResolved
@@ -45,7 +54,7 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
 
     private async Task PrintAssociations()
     {
-        foreach (var attribute in Object.Associations.Where(ShouldPrintAttributeAsAssociation))
+        foreach (var attribute in Object.Associations.Where(x => ShouldPrintAttributeAsAssociation(Object, x)))
         {
             var name = attribute.Name.StartsWith(attribute.TargetSymbol.ResolvedTarget!.Name) ? string.Empty : $" : \"{attribute.Name}\"";
             var cardinality = attribute.IsList ? "\"0..*\" " : attribute.IsNullable ? "\"0..1\"" : "\"1\" ";
@@ -54,12 +63,22 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
         }
     }
 
-    private bool ShouldPrintAttributeAsAssociation(Association x) =>
+    private bool ShouldPrintAttributeAsAssociation(Class source, Association x) =>
         x.TargetSymbol.IsResolved &&
-        AreThereNotTooManyReferences(Project.GetReferencesTo(x.TargetSymbol.ResolvedTarget!));
+        AreThereNotTooManyReferences(Project.GetReferencesTo(x.TargetSymbol.ResolvedTarget!)) &&
+        TargetNamespaceAllowedToPrintAssociationsTo(source, x.TargetSymbol.ResolvedTarget!.Namespace) &&
+        NamespaceIsVisible(source, x.TargetSymbol.ResolvedTarget!.Namespace);
 
     private static bool AreThereNotTooManyReferences(IEnumerable<NamespacedObject> references) =>
         references.Count() is > 0 and < 4;
+
+    private bool TargetNamespaceAllowedToPrintAssociationsTo(NamespacedObject source, string @namespace) =>
+        !_namespacesToDrawNoArrowsTo.Contains(@namespace) ||
+        source.Namespace == @namespace;
+
+    private bool NamespaceIsVisible(NamespacedObject source, string @namespace) =>
+        !_namespacesToHideInOtherNamespaces.Contains(@namespace) ||
+        source.Namespace == @namespace;
 
     private async Task PrintInheritance()
     {
@@ -75,43 +94,39 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
 
     private async Task PrintIncludes()
     {
-        if (await PrintOutgoingAssociationIncludes() |
-            await PrintIncomingReferenceIncludes() |
-            await PrintOutgoingBaseClassInclude())
-        {
-            await WriteLine();
-        }
+        await PrintOutgoingAssociationIncludes();
+        await PrintIncomingReferenceIncludes();
+        await PrintOutgoingBaseClassInclude();
     }
 
-    private async Task<bool> PrintOutgoingAssociationIncludes()
+    private async Task PrintOutgoingAssociationIncludes()
     {
-        var associations = Object.Associations.Where(x => x.TargetSymbol.IsResolved).ToList();
+        var associations = Object.Associations.Where(x =>
+            x.TargetSymbol.IsResolved &&
+            NamespaceIsVisible(Object, x.TargetSymbol.ResolvedTarget!.Namespace)).ToList();
         if (!associations.Any())
         {
-            return false;
+            return;
         }
 
         var up = GetDirectoryLevelUpsToRoot();
-        foreach (var down in associations.Select(x => IncludesPrinter.GetIncludesPathByNamespace(x.TargetSymbol.ResolvedTarget!)))
+        foreach (var down in associations
+                     .Select(x => IncludesPrinter.GetIncludesPathByNamespace(x.TargetSymbol.ResolvedTarget!)).Distinct())
         {
             await WriteLine($"!includesub {up}{down}.puml!TYPE");
         }
-
-        return true;
     }
 
-    private async Task<bool> PrintOutgoingBaseClassInclude()
+    private async Task PrintOutgoingBaseClassInclude()
     {
         if (!Object.HasBaseClass || !Object.BaseTypeSymbol!.IsResolved)
         {
-            return false;
+            return;
         }
 
         var up = GetDirectoryLevelUpsToRoot();
         var down = IncludesPrinter.GetIncludesPathByNamespace(Object.BaseTypeSymbol!.ResolvedTarget!);
         await WriteLine($"!includesub {up}{down}.puml!TYPE");
-
-        return true;
     }
 
     private string GetClassStereotype()

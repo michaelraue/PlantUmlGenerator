@@ -13,6 +13,8 @@ public class EnumerationPrinter : PrinterForNamedObjects<Enumeration>
     {
         await WriteLine($"@startuml");
         await WriteLine();
+        await PrintCommonConfigInclude();
+        await WriteLine();
         await WriteLine("!startsub TYPE");
         await WriteLine($"enum {Object.FullName} {{");
         await PrintMembers();
@@ -20,6 +22,7 @@ public class EnumerationPrinter : PrinterForNamedObjects<Enumeration>
         await WriteLine("!endsub");
         await WriteLine();
         await PrintIncludes();
+        await WriteLine();
         await WriteLine("@enduml");
     }
 
@@ -36,9 +39,6 @@ public class EnumerationPrinter : PrinterForNamedObjects<Enumeration>
 
     private async Task PrintIncludes()
     {
-        if (await PrintIncomingReferenceIncludes())
-        {
-            await WriteLine();
-        }
+        await PrintIncomingReferenceIncludes();
     }
 }

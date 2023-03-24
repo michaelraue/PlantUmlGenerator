@@ -12,17 +12,27 @@ This project is inspired by https://github.com/pierre3/PlantUmlClassDiagramGener
 
 ## Usage
 ```
-PlantUmlGenerator <input-project> <output-dir> [options]
-
+Description:
+  Generates PlantUML class diagrams from C# code
+Usage:
+  PlantUmlGenerator <input-project> <output-dir> [options]
 Arguments:
   <input-project>  The C# project for which to create a PlantUML class diagram.
-  <output-dir>     The directory which is used to generate PlantUML code files in.
+  <output-dir>     The directory which is used to generate PlantUML code files
+                   in.
 
 Options:
-  --excludes <excludes>  A list of namespaces or types which shall not be used for diagram generation []
-  --clear                If set the output directory will be cleaned if folders/files are already present [default: False]
-  --version              Show version information
-  -?, -h, --help         Show help and usage information
+  --excludes <names>             A list of namespaces or types which shall
+                                 completely excluded in all diagrams []
+  --clear                        If set the output directory will be cleaned if
+                                 folders/files are already present [default:
+                                 False]
+  --noAssociations <namespaces>  A list of namespaces to which no associations
+                                 are drawn to, to prevent clutter []
+  --hide <namespaces>            A list of namespaces which shall not appear on
+                                 diagrams of other namespaces []
+  --version                      Show version information
+  -?, -h, --help                 Show help and usage information
 ```
 
 Example:
@@ -39,6 +49,7 @@ With the `--excludes` parameter a list of classes, namespaces or a mix of them c
 
 ## Requirements
 
+### Version 1.0.0
 * Organize the classes in their namespaces
 * Generate a PUML file for each class individually, but also aggregated views for each namespace and overall
 * If the diagram of a specific class is shown it should also show all surrounding classes to easily see the context
@@ -46,13 +57,11 @@ With the `--excludes` parameter a list of classes, namespaces or a mix of them c
   * Also records are always considered as a `Value Object`
 * Display list types not as an association to the real list type, but as a `*` association to the generic type behind the list
   * If a dictionary type is used, use the `.Value` part as the underlying class an association should point to
+* Let the user configure namespaces in which no associations go in (all properties of types of such a namespace get always printed as attributes)
+* Let the user configure namespaces which shall never appear in diagrams of other namespaces
+* Let the user configure the color of namespace box borders
+  * This is done with a `_common.puml` file which gets generated in the output folder and will never be overwritten
 
 ### Backlog
-
 * Support interfaces and structs
-* Let the user configure namespaces which shall never appear in diagrams of other namespaces
-* Let the user configure namespaces in which no associations go in (all properties of types of such a namespace get always printed as attributes)
 * Let the user configure different background colors for namespaces
-* Let the user configure the color of namespace box borders
-* Let the user configure an option to merge namespace boxes into one if possible
-  * Example: If there is only one class in a diagram and this class is in the namespace `X.Y`, then just draw one namespace box with the title `X.Y` instead of two nested boxes with `Y` inside of `X`.

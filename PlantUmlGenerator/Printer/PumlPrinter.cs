@@ -1,4 +1,5 @@
 ﻿using PlantUmlGenerator.Model;
+using PlantUmlGenerator.Printer.Options;
 
 namespace PlantUmlGenerator.Printer;
 
@@ -8,11 +9,16 @@ public class PumlPrinter : IPumlPrinter
 
     private readonly DirectoryInfo _outputDirectory;
     private readonly bool _clearOutputDirectory;
+    private readonly PumlPrinterOptions _options;
 
-    public PumlPrinter(DirectoryInfo outputDirectory, bool clearOutputDirectory)
+    public PumlPrinter(
+        DirectoryInfo outputDirectory,
+        bool clearOutputDirectory,
+        PumlPrinterOptions options)
     {
         _outputDirectory = outputDirectory;
         _clearOutputDirectory = clearOutputDirectory;
+        _options = options;
     }
     
     public async Task PrintPuml(PumlProject project)
@@ -22,7 +28,9 @@ public class PumlPrinter : IPumlPrinter
         foreach (var @class in project.Classes)
         {
             var folder = CreateNamespaceFolder(_outputDirectory, @class);
-            await Print(@class, folder, includesPrinter, (c, writer) => new ClassPrinter(c, writer, project));
+            await Print(@class, folder, includesPrinter,
+                (c, writer) => new ClassPrinter(c, writer, project, _options.NamespacesToDrawNoAssociationsTo,
+                    _options.NamespacesToHideInOtherNamespaces));
         }
 
         foreach (var enumeration in project.Enumerations)
@@ -32,6 +40,7 @@ public class PumlPrinter : IPumlPrinter
         }
 
         await includesPrinter.Print();
+        await new CommonIncludePrinter(_outputDirectory).Print();
     }
 
     private static async Task Print<T>(
@@ -64,16 +73,23 @@ public class PumlPrinter : IPumlPrinter
         if (!_outputDirectory.Exists)
         {
             _outputDirectory.Create();
+            return;
         }
-        else
+
+        var folders = _outputDirectory.GetDirectories();
+        var files = _outputDirectory.GetFiles()
+            .Where(x => x.Name != CommonIncludePrinter.CommonConfigFileNameWithExtension);
+        if (!_clearOutputDirectory)
         {
-            if ((_outputDirectory.GetDirectories().Any() || _outputDirectory.GetFiles().Any()) && !_clearOutputDirectory)
+            if (folders.Any() || files.Any())
             {
                 throw new Exception("Output directory is not empty");
             }
-            
-            _outputDirectory.Delete(true);
-            _outputDirectory.Create();
+
+            return;
         }
+        
+        foreach (var x in folders) x.Delete(true);
+        foreach (var x in files) x.Delete();
     }
 }

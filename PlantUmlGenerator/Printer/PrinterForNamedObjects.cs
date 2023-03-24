@@ -21,9 +21,6 @@ public abstract class PrinterForNamedObjects<T> where T : NamespacedObject
 
     public abstract Task Print();
 
-    protected string GetDirectoryLevelUpsToRoot() =>
-        string.Concat(Enumerable.Repeat($"..{IncludesPrinter.PumlFileDirectorySeparator}", Object.Namespace.Split(".").Length));
-
     protected async Task<bool> PrintIncomingReferenceIncludes()
     {
         var incomingReferences = Project.GetReferencesTo(Object).ToList();
@@ -40,6 +37,15 @@ public abstract class PrinterForNamedObjects<T> where T : NamespacedObject
 
         return true;
     }
+
+    protected async Task PrintCommonConfigInclude()
+    {
+        var up = GetDirectoryLevelUpsToRoot();
+        await WriteLine($"!include {up}{CommonIncludePrinter.CommonConfigFileNameWithExtension}");
+    }
+    
+    protected string GetDirectoryLevelUpsToRoot() =>
+        IncludesPrinter.GetDirectoryLevelUpsToRoot(Object.Namespace.Split(".").Length);
 
     protected async Task WriteLine()
     {
