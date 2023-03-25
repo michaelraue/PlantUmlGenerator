@@ -45,7 +45,7 @@ public abstract class PrinterForNamedObjects<T> where T : NamespacedObject
     }
     
     protected string GetDirectoryLevelUpsToRoot() =>
-        IncludesPrinter.GetDirectoryLevelUpsToRoot(Object.Namespace.Split(".").Length);
+        IncludesPrinter.GetDirectoryLevelUpsToRoot(Object.Namespace.Split(".", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Length);
 
     protected async Task WriteLine()
     {
