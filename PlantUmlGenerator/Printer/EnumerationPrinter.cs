@@ -4,8 +4,8 @@ namespace PlantUmlGenerator.Printer;
 
 public class EnumerationPrinter : PrinterForNamedObjects<Enumeration>
 {
-    public EnumerationPrinter(Enumeration enumeration, TextWriter writer, PumlProject project)
-        : base(enumeration, writer, project)
+    public EnumerationPrinter(Enumeration enumeration, TextWriter writer, PumlProject project, IEnumerable<string> namespacesToHideInOtherNamespaces)
+        : base(enumeration, writer, project, namespacesToHideInOtherNamespaces)
     {
     }
 
@@ -14,6 +14,7 @@ public class EnumerationPrinter : PrinterForNamedObjects<Enumeration>
         await WriteLine($"@startuml");
         await WriteLine();
         await PrintCommonConfigInclude();
+        await PrintNamespaceIncludes();
         await WriteLine();
         await WriteLine("!startsub TYPE");
         await WriteLine($"enum {Object.FullName} {{");
@@ -24,6 +25,20 @@ public class EnumerationPrinter : PrinterForNamedObjects<Enumeration>
         await PrintIncludes();
         await WriteLine();
         await WriteLine("@enduml");
+    }
+
+    private async Task PrintNamespaceIncludes()
+    {
+        var up = GetDirectoryLevelUpsToRoot();
+        foreach (var @namespace in GetIncomingReferences().Select(x => x.Namespace)
+                     .Union(new[] { Object.Namespace })
+                     .SelectMany(PumlPrinter.GetAllSubNamespacePermutations)
+                     .Where(x => !string.IsNullOrWhiteSpace(x))
+                     .Order()
+                     .Distinct())
+        {
+            await WriteLine($"!include {up}{CommonIncludePrinter.CommonConfigFileNameWithExtension}!{@namespace}");
+        }
     }
 
     private async Task PrintMembers()

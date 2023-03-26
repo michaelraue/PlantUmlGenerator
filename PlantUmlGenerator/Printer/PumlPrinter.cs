@@ -36,11 +36,25 @@ public class PumlPrinter : IPumlPrinter
         foreach (var enumeration in project.Enumerations)
         {
             var folder = CreateNamespaceFolder(_outputDirectory, enumeration);
-            await Print(enumeration, folder, includesPrinter, (e, writer) => new EnumerationPrinter(e, writer, project));
+            await Print(enumeration, folder, includesPrinter,
+                (e, writer) => new EnumerationPrinter(e, writer, project, _options.NamespacesToDrawNoAssociationsTo));
         }
 
         await includesPrinter.Print();
-        await new CommonIncludePrinter(_outputDirectory).Print();
+        await new CommonIncludePrinter(_outputDirectory, project).Print();
+    }
+
+    public static IEnumerable<string> GetAllSubNamespacePermutations(string @namespace)
+    {
+        var parts = @namespace.Split('.', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 0; i <= parts.Length; i++)
+        {
+            var result = string.Join(".", parts[..i]);
+            if (!string.IsNullOrWhiteSpace(result))
+            {
+                yield return result;
+            }
+        }
     }
 
     private static async Task Print<T>(

@@ -18,7 +18,9 @@ public class PumlProject
     
     public IReadOnlyList<Enumeration> Enumerations => _enumerations.Values.ToList().AsReadOnly();
 
-    public string GetRelativeNamespace(string? @namespace) =>
+    public IEnumerable<string> GetAllNamespaces() => Classes.Select(x => x.Namespace).Distinct();
+
+    public string ConvertToRelativeNamespace(string? @namespace) =>
         @namespace?.Replace(_name, string.Empty).TrimStart('.') ?? string.Empty;
 
     public IEnumerable<Class> GetReferencesTo(NamespacedObject target) =>

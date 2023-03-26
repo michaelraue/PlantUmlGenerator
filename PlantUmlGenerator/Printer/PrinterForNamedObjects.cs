@@ -4,13 +4,15 @@ namespace PlantUmlGenerator.Printer;
 
 public abstract class PrinterForNamedObjects<T> where T : NamespacedObject
 {
+    private readonly List<string> _namespacesToHideInOtherNamespaces;
     private readonly TextWriter _writer;
 
-    protected PrinterForNamedObjects(T obj, TextWriter writer, PumlProject project)
+    protected PrinterForNamedObjects(T obj, TextWriter writer, PumlProject project, IEnumerable<string> namespacesToHideInOtherNamespaces)
     {
         Object = obj;
         _writer = writer;
         Project = project;
+        _namespacesToHideInOtherNamespaces = namespacesToHideInOtherNamespaces.ToList();
     }
 
     protected T Object { get; }
@@ -21,12 +23,15 @@ public abstract class PrinterForNamedObjects<T> where T : NamespacedObject
 
     public abstract Task Print();
 
-    protected async Task<bool> PrintIncomingReferenceIncludes()
+    protected IEnumerable<Class> GetIncomingReferences() =>
+        Project.GetReferencesTo(Object).Where(x => NamespaceIsVisible(Object, x.Namespace));
+
+    protected async Task PrintIncomingReferenceIncludes()
     {
-        var incomingReferences = Project.GetReferencesTo(Object).ToList();
+        var incomingReferences = GetIncomingReferences().ToList();
         if (!incomingReferences.Any())
         {
-            return false;
+            return;
         }
 
         var up = GetDirectoryLevelUpsToRoot();
@@ -34,9 +39,11 @@ public abstract class PrinterForNamedObjects<T> where T : NamespacedObject
         {
             await WriteLine($"!includesub {up}{down}.puml!TYPE");
         }
-
-        return true;
     }
+
+    protected bool NamespaceIsVisible(NamespacedObject source, string @namespace) =>
+        !_namespacesToHideInOtherNamespaces.Contains(@namespace) ||
+        source.Namespace == @namespace;
 
     protected async Task PrintCommonConfigInclude()
     {

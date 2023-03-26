@@ -49,6 +49,9 @@ With the `--excludes` parameter a list of classes, namespaces or a mix of them c
 
 ## Requirements
 
+### Version 1.1.0
+* Let the user configure different background colors for namespaces
+
 ### Version 1.0.0
 * Organize the classes in their namespaces
 * Generate a PUML file for each class individually, but also aggregated views for each namespace and overall
@@ -64,4 +67,3 @@ With the `--excludes` parameter a list of classes, namespaces or a mix of them c
 
 ### Backlog
 * Support interfaces and structs
-* Let the user configure different background colors for namespaces

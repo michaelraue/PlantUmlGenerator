@@ -28,7 +28,7 @@ public class TypeReader : CSharpSyntaxWalker
             return;
         }
 
-        var @namespace = _project.GetRelativeNamespace(symbol.ContainingNamespace?.ToDisplayString());
+        var @namespace = _project.ConvertToRelativeNamespace(symbol.ContainingNamespace?.ToDisplayString());
 
         var enumValuesReader = new EnumValuesReader();
         foreach (var member in symbol.GetMembers())
@@ -74,7 +74,7 @@ public class TypeReader : CSharpSyntaxWalker
         }
 
         var baseClassSymbol = GetBaseClassSymbol(symbol);
-        var @namespace = _project.GetRelativeNamespace(symbol.ContainingNamespace?.ToDisplayString());
+        var @namespace = _project.ConvertToRelativeNamespace(symbol.ContainingNamespace?.ToDisplayString());
         var @class = new Class(@namespace, symbol.Name, symbol.IsAbstract, symbol.IsRecord, baseClassSymbol);
         if (ShallBeExcluded(@class))
         {
@@ -104,7 +104,7 @@ public class TypeReader : CSharpSyntaxWalker
             return null;
         }
 
-        var relativeNamespace = _project.GetRelativeNamespace(baseTypeNamespace);
+        var relativeNamespace = _project.ConvertToRelativeNamespace(baseTypeNamespace);
         return new TypeSymbol(baseTypeName, relativeNamespace);
     }
 

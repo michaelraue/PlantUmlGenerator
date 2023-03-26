@@ -5,15 +5,13 @@ namespace PlantUmlGenerator.Printer;
 
 public class ClassPrinter : PrinterForNamedObjects<Class>
 {
-    private readonly List<string> _namespacesToHideInOtherNamespaces;
     private readonly List<string> _namespacesToDrawNoArrowsTo;
 
     public ClassPrinter(Class @class, TextWriter writer, PumlProject project,
         IEnumerable<string> namespacesToDrawNoAssociationsTo, IEnumerable<string> namespacesToHideInOtherNamespaces)
-        : base(@class, writer, project)
+        : base(@class, writer, project, namespacesToHideInOtherNamespaces)
     {
         _namespacesToDrawNoArrowsTo = namespacesToDrawNoAssociationsTo.ToList();
-        _namespacesToHideInOtherNamespaces = namespacesToHideInOtherNamespaces.ToList();
     }
 
     public override async Task Print()
@@ -23,6 +21,7 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
         await WriteLine("@startuml");
         await WriteLine();
         await PrintCommonConfigInclude();
+        await PrintNamespaceIncludes();
         await WriteLine();
         await WriteLine("!startsub TYPE");
         await WriteLine($"{abstractModifier}class {Object.FullName}{stereotype}{{");
@@ -35,6 +34,23 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
         await PrintIncludes();
         await WriteLine();
         await WriteLine("@enduml");
+    }
+
+    private async Task PrintNamespaceIncludes()
+    {
+        var up = GetDirectoryLevelUpsToRoot();
+        foreach (var @namespace in
+                 GetOutgoingAssociationsToPrint().Select(x => x.TargetSymbol.ResolvedTarget!.Namespace)
+                     .Union(GetIncomingReferences().Select(x => x.Namespace))
+                     .Union(new[] { HasBaseClassToPrint() ? Object.BaseTypeSymbol!.ResolvedTarget!.Namespace : string.Empty})
+                     .Union(new[] { Object.Namespace })
+                     .SelectMany(PumlPrinter.GetAllSubNamespacePermutations)
+                     .Where(x => !string.IsNullOrWhiteSpace(x))
+                     .Order()
+                     .Distinct())
+        {
+            await WriteLine($"!include {up}{CommonIncludePrinter.CommonConfigFileNameWithExtension}!{@namespace}");
+        }
     }
 
     private async Task PrintAttributes()
@@ -76,10 +92,6 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
         !_namespacesToDrawNoArrowsTo.Contains(@namespace) ||
         source.Namespace == @namespace;
 
-    private bool NamespaceIsVisible(NamespacedObject source, string @namespace) =>
-        !_namespacesToHideInOtherNamespaces.Contains(@namespace) ||
-        source.Namespace == @namespace;
-
     private async Task PrintInheritance()
     {
         if (!Object.HasBaseClass ||
@@ -99,11 +111,17 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
         await PrintOutgoingBaseClassInclude();
     }
 
+    private IEnumerable<Association> GetOutgoingAssociationsToPrint() =>
+        Object.Associations.Where(x =>
+            x.TargetSymbol.IsResolved &&
+            NamespaceIsVisible(Object, x.TargetSymbol.ResolvedTarget!.Namespace));
+
+    private bool HasBaseClassToPrint() => Object.HasBaseClass && Object.BaseTypeSymbol!.IsResolved &&
+                                          NamespaceIsVisible(Object, Object.BaseTypeSymbol.ResolvedTarget!.Namespace);
+
     private async Task PrintOutgoingAssociationIncludes()
     {
-        var associations = Object.Associations.Where(x =>
-            x.TargetSymbol.IsResolved &&
-            NamespaceIsVisible(Object, x.TargetSymbol.ResolvedTarget!.Namespace)).ToList();
+        var associations = GetOutgoingAssociationsToPrint().ToList();
         if (!associations.Any())
         {
             return;
@@ -119,7 +137,7 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
 
     private async Task PrintOutgoingBaseClassInclude()
     {
-        if (!Object.HasBaseClass || !Object.BaseTypeSymbol!.IsResolved)
+        if (!HasBaseClassToPrint())
         {
             return;
         }

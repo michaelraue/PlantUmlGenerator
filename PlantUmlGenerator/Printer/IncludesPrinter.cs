@@ -13,7 +13,7 @@ public class IncludesPrinter
     public IncludesPrinter(DirectoryInfo outputDirectory)
     {
         _fullOutputPath = outputDirectory.FullName;
-        _outputFolder = new Folder(outputDirectory.FullName, 0);
+        _outputFolder = new Folder(string.Empty, outputDirectory.FullName, 0);
     }
 
     public static string GetIncludesPathByNamespace(NamespacedObject obj) =>
@@ -32,17 +32,21 @@ public class IncludesPrinter
 
     private class Folder
     {
+        private readonly string _name;
         private readonly string _path;
+        private readonly Folder? _parent;
         private readonly Dictionary<string, Folder> _subFolders;
         private readonly List<string> _files;
         private readonly int _nestLevel;
 
-        public Folder(string path, int nestLevel)
+        public Folder(string name, string path, int nestLevel, Folder? parent = null)
         {
+            _name = name;
             _path = path;
             _nestLevel = nestLevel;
             _files = new();
             _subFolders = new();
+            _parent = parent;
         }
 
         public void Add(string path)
@@ -56,7 +60,7 @@ public class IncludesPrinter
 
             if (!_subFolders.ContainsKey(parts[0]))
             {
-                _subFolders.Add(parts[0], new Folder(Path.Combine(_path, parts[0]), _nestLevel+1));
+                _subFolders.Add(parts[0], new Folder(parts[0], Path.Combine(_path, parts[0]), _nestLevel+1, this));
             }
 
             _subFolders[parts[0]].Add(string.Join(Path.DirectorySeparatorChar, parts[1..]));
@@ -64,22 +68,72 @@ public class IncludesPrinter
 
         public async Task Print()
         {
+            await WriteTheFileInThisFolder();
+            await WriteFilesInSubFolders();
+        }
+
+        private async Task WriteTheFileInThisFolder()
+        {
             var content = new StringBuilder();
             content.AppendLine("@startuml").AppendLine();
-            var up = GetDirectoryLevelUpsToRoot(_nestLevel);
-            content.AppendLine($"!include {up}{CommonIncludePrinter.CommonConfigFileNameWithExtension}").AppendLine();
-            foreach (var subFolder in _subFolders)
+            content.AppendLine("!startsub FOLDER_INCLUDES");
+            PrintCommonFileIncludes(content);
+            PrintSubFolderIncludes(content);
+            content.AppendLine("!endsub").AppendLine();
+            content.AppendLine("!startsub FILE_INCLUDES");
+            PrintFileIncludes(content);
+            content.AppendLine("!endsub");
+            content.AppendLine().AppendLine("@enduml");
+            await WriteFile(content);
+        }
+
+        private IEnumerable<string> GetFullname() => _parent == null ? new[] { _name } : _parent.GetFullname().Concat(new[] { _name });
+
+        private void PrintMyBaseNamespaceIncludes(StringBuilder content, string directoryLevelUpsToRoot)
+        {
+            if (_parent == null)
             {
-                content.AppendLine($"!include {subFolder.Key}{PumlFileDirectorySeparator}{IncludesFileNameWithoutExtension}.puml");
+                return;
             }
 
+            _parent.PrintMyBaseNamespaceIncludes(content, directoryLevelUpsToRoot);
+            var name = string.Join(".", GetFullname().Where(x => !string.IsNullOrWhiteSpace(x)));
+            content.AppendLine($"!include {directoryLevelUpsToRoot}{CommonIncludePrinter.CommonConfigFileNameWithExtension}!{name}");
+        }
+
+        private void PrintCommonFileIncludes(StringBuilder content)
+        {
+            var up = GetDirectoryLevelUpsToRoot(_nestLevel);
+            content.AppendLine($"!include {up}{CommonIncludePrinter.CommonConfigFileNameWithExtension}");
+            PrintMyBaseNamespaceIncludes(content, up);
+        }
+
+        private void PrintSubFolderIncludes(StringBuilder content)
+        {
+            foreach (var subFolder in _subFolders)
+            {
+                content.AppendLine($"!includesub {subFolder.Key}{PumlFileDirectorySeparator}{IncludesFileNameWithoutExtension}.puml!FOLDER_INCLUDES");
+            }
+
+            foreach (var subFolder in _subFolders)
+            {
+                content.AppendLine($"!includesub {subFolder.Key}{PumlFileDirectorySeparator}{IncludesFileNameWithoutExtension}.puml!FILE_INCLUDES");
+            }
+        }
+
+        private void PrintFileIncludes(StringBuilder content)
+        {
             foreach (var file in _files)
             {
                 content.AppendLine($"!includesub {file}!TYPE");
             }
+        }
 
-            content.AppendLine().AppendLine("@enduml");
-            await File.WriteAllTextAsync(Path.Combine(_path, $"{IncludesFileNameWithoutExtension}.puml"), content.ToString());
+        private Task WriteFile(StringBuilder content) =>
+            File.WriteAllTextAsync(Path.Combine(_path, $"{IncludesFileNameWithoutExtension}.puml"), content.ToString());
+
+        private async Task WriteFilesInSubFolders()
+        {
             foreach (var subFolder in _subFolders)
             {
                 await subFolder.Value.Print();

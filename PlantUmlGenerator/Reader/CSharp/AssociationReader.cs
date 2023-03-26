@@ -29,7 +29,7 @@ public class AssociationReader : SymbolVisitor
             return;
         }
 
-        var relativeTargetTypeNamespace = _project.GetRelativeNamespace(targetTypeNamespace);
+        var relativeTargetTypeNamespace = _project.ConvertToRelativeNamespace(targetTypeNamespace);
         var isList = symbol.Type.Accept(new IsList());
         var isNullable = symbol.Type.Accept(new IsBoxedNullableType());
         if (targetTypeName.EndsWith("?"))
