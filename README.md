@@ -18,21 +18,15 @@ Usage:
   PlantUmlGenerator <input-project> <output-dir> [options]
 Arguments:
   <input-project>  The C# project for which to create a PlantUML class diagram.
-  <output-dir>     The directory which is used to generate PlantUML code files
-                   in.
-
+  <output-dir>     The directory which is used to generate PlantUML code files in.
 Options:
-  --excludes <names>             A list of namespaces or types which shall
-                                 completely excluded in all diagrams []
-  --clear                        If set the output directory will be cleaned if
-                                 folders/files are already present [default:
-                                 False]
-  --noAssociations <namespaces>  A list of namespaces to which no associations
-                                 are drawn to, to prevent clutter []
-  --hide <namespaces>            A list of namespaces which shall not appear on
-                                 diagrams of other namespaces []
-  --version                      Show version information
-  -?, -h, --help                 Show help and usage information
+  --excludes <names>               A list of namespaces or types which shall completely excluded in all diagrams []
+  --clear                          If set the output directory will be cleaned if folders/files are already present [default: False]
+  --noAssociations <namespaces>    A list of namespaces to which no associations are drawn to, to prevent clutter []
+  --hide <namespaces>              A list of namespaces which shall not appear on diagrams of other namespaces []
+  --topLevelNamespace <namespace>  The top level namespace to consider for PlantUML, if it differs from the project name []
+  --version                        Show version information
+  -?, -h, --help                   Show help and usage information
 ```
 
 Example:
@@ -48,6 +42,10 @@ Note: The given project must compile for the generator to work. If there are com
 With the `--excludes` parameter a list of classes, namespaces or a mix of them can be given. In case of a namespace, all sub namespaces and classes are excluded.
 
 ## Requirements
+
+### Version 1.2.0
+* Let the user to define a top level namespace definition which is then used instead of the project's name
+* Treat Enumeration classes as enums
 
 ### Version 1.1.0
 * Let the user configure different background colors for namespaces

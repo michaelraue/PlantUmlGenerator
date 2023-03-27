@@ -10,11 +10,13 @@ public class CSharpReader : IReader
 {
     private readonly FileInfo _csproj;
     private readonly IEnumerable<string> _excludes;
+    private readonly string? _topLevelNamespace;
 
-    public CSharpReader(FileInfo csproj, IEnumerable<string> excludes)
+    public CSharpReader(FileInfo csproj, IEnumerable<string> excludes, string? topLevelNamespace)
     {
         _csproj = csproj;
         _excludes = excludes;
+        _topLevelNamespace = topLevelNamespace;
     }
 
     public async Task<PumlProject> Read()
@@ -22,7 +24,8 @@ public class CSharpReader : IReader
         RegisterMsBuildLocator();
         using var wp = MSBuildWorkspace.Create();
         var csProject = await GetCsProject(wp);
-        var pumlProject = new PumlProject(csProject.Name);
+        var topLevelNamespace = _topLevelNamespace ?? csProject.Name;
+        var pumlProject = new PumlProject(topLevelNamespace);
         foreach (var doc in csProject.Documents)
         {
             if (await doc.GetSyntaxRootAsync() is not CSharpSyntaxNode syntaxRoot ||

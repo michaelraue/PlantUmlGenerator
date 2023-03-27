@@ -42,7 +42,7 @@ public abstract class PrinterForNamedObjects<T> where T : NamespacedObject
     }
 
     protected bool NamespaceIsVisible(NamespacedObject source, string @namespace) =>
-        !_namespacesToHideInOtherNamespaces.Contains(@namespace) ||
+        !_namespacesToHideInOtherNamespaces.Any(@namespace.StartsWith) ||
         source.Namespace == @namespace;
 
     protected async Task PrintCommonConfigInclude()

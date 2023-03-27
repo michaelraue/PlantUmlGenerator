@@ -22,28 +22,14 @@ public class TypeReader : CSharpSyntaxWalker
 
     public override void VisitEnumDeclaration(EnumDeclarationSyntax node)
     {
-        if (_semanticModel.GetDeclaredSymbol(node) is not {} symbol)
+        if (_semanticModel.GetDeclaredSymbol(node) is not {} symbol ||
+            (!symbol.ContainingNamespace?.ToDisplayString().StartsWith(_project.TopLevelNamespace) ?? false) ||
+            !HandleEnum(symbol))
         {
-            base.VisitEnumDeclaration(node);
             return;
         }
 
-        var @namespace = _project.ConvertToRelativeNamespace(symbol.ContainingNamespace?.ToDisplayString());
-
-        var enumValuesReader = new EnumValuesReader();
-        foreach (var member in symbol.GetMembers())
-        {
-            member.Accept(enumValuesReader);
-        }
-
-        var enumeration = new Enumeration(@namespace, symbol.Name, enumValuesReader.Values);
-        if (ShallBeExcluded(enumeration))
-        {
-            base.VisitEnumDeclaration(node);
-            return;
-        }
-
-        _project.Add(enumeration);
+        base.VisitEnumDeclaration(node);
     }
 
     public override void VisitClassDeclaration(ClassDeclarationSyntax node)
@@ -68,12 +54,18 @@ public class TypeReader : CSharpSyntaxWalker
     
     private bool HandleTypeDeclaration(TypeDeclarationSyntax node)
     {
-        if (_semanticModel.GetDeclaredSymbol(node) is not {} symbol)
+        if (_semanticModel.GetDeclaredSymbol(node) is not {} symbol ||
+            (!symbol.ContainingNamespace?.ToDisplayString().StartsWith(_project.TopLevelNamespace) ?? false))
         {
             return false;
         }
 
         var baseClassSymbol = GetBaseClassSymbol(symbol);
+        if (baseClassSymbol?.SymbolName == "Enumeration")
+        {
+            return HandleEnum(symbol);
+        }
+
         var @namespace = _project.ConvertToRelativeNamespace(symbol.ContainingNamespace?.ToDisplayString());
         var @class = new Class(@namespace, symbol.Name, symbol.IsAbstract, symbol.IsRecord, baseClassSymbol);
         if (ShallBeExcluded(@class))
@@ -87,6 +79,25 @@ public class TypeReader : CSharpSyntaxWalker
             member.Accept(new AssociationReader(_project));
         }
 
+        return true;
+    }
+
+    private bool HandleEnum(INamedTypeSymbol symbol)
+    {
+        var @namespace = _project.ConvertToRelativeNamespace(symbol.ContainingNamespace?.ToDisplayString());
+        var enumValuesReader = new EnumValuesReader();
+        foreach (var member in symbol.GetMembers())
+        {
+            member.Accept(enumValuesReader);
+        }
+
+        var enumeration = new Enumeration(@namespace, symbol.Name, enumValuesReader.Values);
+        if (ShallBeExcluded(enumeration))
+        {
+            return false;
+        }
+
+        _project.Add(enumeration);
         return true;
     }
 

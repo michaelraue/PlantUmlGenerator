@@ -68,6 +68,13 @@ var hideOption = new Option<string[]>(
     Arity = ArgumentArity.OneOrMore,
     ArgumentHelpName = "namespaces",
 };
+var topLevelNamespaceOption = new Option<string?>(
+    name: "--topLevelNamespace",
+    description: "The top level namespace to consider for PlantUML, if it differs from the project name",
+    getDefaultValue: () => null)
+{
+    ArgumentHelpName = "namespace",
+};
     
 var rootCommand = new RootCommand("Generates PlantUML class diagrams from C# code");
 rootCommand.AddArgument(inputProjectArgument);
@@ -76,10 +83,11 @@ rootCommand.AddOption(excludesOption);
 rootCommand.AddOption(clearOutputDirectoryOption);
 rootCommand.AddOption(noAssociationsOption);
 rootCommand.AddOption(hideOption);
+rootCommand.AddOption(topLevelNamespaceOption);
 
-rootCommand.SetHandler(async (inputProject, outputDirectory, excludes, clearOutputDirectory, noAssociations, hide) =>
+rootCommand.SetHandler(async (inputProject, outputDirectory, excludes, clearOutputDirectory, noAssociations, hide, topLevelNamespace) =>
     {
-        var reader = new CSharpReader(inputProject!, excludes);
+        var reader = new CSharpReader(inputProject!, excludes, topLevelNamespace);
         var printerOptions = new PumlPrinterOptions
         {
             NamespacesToDrawNoAssociationsTo = noAssociations,
@@ -90,6 +98,6 @@ rootCommand.SetHandler(async (inputProject, outputDirectory, excludes, clearOutp
         var puml = await reader.Read();
         await printer.PrintPuml(puml);
     }, inputProjectArgument, outputDirectoryArgument, excludesOption, clearOutputDirectoryOption, noAssociationsOption,
-    hideOption);
+    hideOption, topLevelNamespaceOption);
 
 await rootCommand.InvokeAsync(args);

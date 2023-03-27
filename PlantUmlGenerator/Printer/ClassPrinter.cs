@@ -86,10 +86,10 @@ public class ClassPrinter : PrinterForNamedObjects<Class>
         NamespaceIsVisible(source, x.TargetSymbol.ResolvedTarget!.Namespace);
 
     private static bool AreThereNotTooManyReferences(IEnumerable<NamespacedObject> references) =>
-        references.Count() is > 0 and < 4;
+        references.Count() is > 0 and < 6;
 
     private bool TargetNamespaceAllowedToPrintAssociationsTo(NamespacedObject source, string @namespace) =>
-        !_namespacesToDrawNoArrowsTo.Contains(@namespace) ||
+        !_namespacesToDrawNoArrowsTo.Any(@namespace.StartsWith) ||
         source.Namespace == @namespace;
 
     private async Task PrintInheritance()

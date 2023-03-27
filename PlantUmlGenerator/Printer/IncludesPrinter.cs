@@ -114,15 +114,15 @@ public class IncludesPrinter
             {
                 content.AppendLine($"!includesub {subFolder.Key}{PumlFileDirectorySeparator}{IncludesFileNameWithoutExtension}.puml!FOLDER_INCLUDES");
             }
-
-            foreach (var subFolder in _subFolders)
-            {
-                content.AppendLine($"!includesub {subFolder.Key}{PumlFileDirectorySeparator}{IncludesFileNameWithoutExtension}.puml!FILE_INCLUDES");
-            }
         }
 
         private void PrintFileIncludes(StringBuilder content)
         {
+            foreach (var subFolder in _subFolders)
+            {
+                content.AppendLine($"!includesub {subFolder.Key}{PumlFileDirectorySeparator}{IncludesFileNameWithoutExtension}.puml!FILE_INCLUDES");
+            }
+
             foreach (var file in _files)
             {
                 content.AppendLine($"!includesub {file}!TYPE");

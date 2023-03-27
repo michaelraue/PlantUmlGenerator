@@ -2,17 +2,18 @@
 
 public class PumlProject
 {
-    private readonly string _name;
     private readonly Dictionary<string, Class> _classes;
     private readonly Dictionary<string, Enumeration> _enumerations;
     private Class? _currentClass;
 
-    public PumlProject(string name)
+    public PumlProject(string topLevelNamespace)
     {
-        _name = name;
+        TopLevelNamespace = topLevelNamespace;
         _classes = new Dictionary<string, Class>();
         _enumerations = new Dictionary<string, Enumeration>();
     }
+
+    public string TopLevelNamespace { get; }
 
     public IReadOnlyList<Class> Classes => _classes.Values.ToList().AsReadOnly();
     
@@ -21,7 +22,7 @@ public class PumlProject
     public IEnumerable<string> GetAllNamespaces() => Classes.Select(x => x.Namespace).Distinct();
 
     public string ConvertToRelativeNamespace(string? @namespace) =>
-        @namespace?.Replace(_name, string.Empty).TrimStart('.') ?? string.Empty;
+        @namespace?.Replace(TopLevelNamespace, string.Empty).TrimStart('.') ?? string.Empty;
 
     public IEnumerable<Class> GetReferencesTo(NamespacedObject target) =>
         Classes.Where(c =>
